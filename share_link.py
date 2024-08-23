@@ -1,13 +1,15 @@
 from src.network import Network
+from datetime import datetime
 
 EXP_MAP = {"1 天": 1, "7 天": 7, "30 天": 30, "永久": 0}
 
 
 class share_baidu_link():
 
-    def __init__(self, cookie, folder_name) -> None:
+    def __init__(self, cookie, folder_name, black_list=[]) -> None:
         self.cookie = cookie
         self.folder_name = folder_name
+        self.black_list = black_list
         self.network = Network()
         self.network.headers['Cookie'] = self.cookie
         self.var_expiry = self.expiry = "永久"  # 设置永久 
@@ -35,24 +37,30 @@ class share_baidu_link():
 
     def handle_process_share(self) -> None:
         """执行批量分享"""
+        self.result = []
         for info in self.dir_list_all:
-            self.process_share(info)
+            if info["server_filename"] in self.black_list:
+                print("Pass get link", info["path"])
+            else:
+                self.result.append(self.process_share(info))
 
     def process_share(self, info: dict) -> str:
         """执行分享操作并记录结果"""
         # 插入要分享的文件或文件夹到链接输入框，对文件夹加入 "/" 标记来区别
-        is_dir = "/" if info["isdir"] == 1 else ""
-        filename = f"{info['server_filename']}{is_dir}"
+        # is_dir = "/" if info["isdir"] == 1 else ""
+        filename = f"{info['server_filename']}"
 
         # 发送创建分享请求
         # msg = f'目录：{filename}' if is_dir else f'文件：{filename}'
         r = self.network.create_share(info['fs_id'], EXP_MAP[self.expiry], self.password)
         if isinstance(r, str):
-            result = f'链接：{r}?pwd={self.password}，密码：{self.password}，名称：{filename}'
+            link = f"{r}?pwd={self.password}"
+            result = f'名称：{filename}，链接：{link}，密码：{self.password}'
+            print(result)
+            return filename, link, self.password, datetime.now().strftime('%Y/%m/%d %H:%M'), "永久有效", result
         else:
             result = f'分享失败：错误代码（{r}），名称：{filename}'
-        print(result)
-        return result
+            print(result)
 
 
 if __name__ == "__main__":
