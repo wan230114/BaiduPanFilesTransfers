@@ -44,7 +44,7 @@ class share_baidu_link():
             else:
                 self.result.append(self.process_share(info))
 
-    def process_share(self, info: dict) -> str:
+    def process_share(self, info: dict, retry: int = 10) -> str:
         """执行分享操作并记录结果"""
         # 插入要分享的文件或文件夹到链接输入框，对文件夹加入 "/" 标记来区别
         # is_dir = "/" if info["isdir"] == 1 else ""
@@ -61,6 +61,10 @@ class share_baidu_link():
         else:
             result = f'分享失败：错误代码（{r}），名称：{filename}'
             print(result)
+            retry -= 1
+            if retry > 0:
+                print("重试中...")
+                self.process_share(info, retry)
 
 
 if __name__ == "__main__":
